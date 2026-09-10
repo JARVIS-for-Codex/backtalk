@@ -1,4 +1,4 @@
-# backtalk: talk to your Claude Code agent out loud.
+# backtalk: talk to your Codex agent out loud.
 # Copyright (C) 2026 Jared Rhodenizer
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@
 """Configuration — backtalk.json in the repo root, merged over defaults.
 
 backtalk deliberately owns NO personality. Your agent's identity lives in
-the CLAUDE.md of whatever folder `agent_dir` points at — backtalk just
+the AGENTS.md of whatever folder `agent_dir` points at — backtalk just
 gives that agent a mouth and ears. The only voice-related instruction it
 adds is the spoken-delivery discipline below, which is about the MEDIUM
 (writing for the ear), never the character.
@@ -35,7 +35,7 @@ REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = Path(os.environ.get("BACKTALK_CONFIG") or (REPO / "backtalk.json"))
 
 DEFAULTS = {
-    # The folder whose CLAUDE.md defines WHO your agent is. The voice
+    # The folder whose AGENTS.md defines WHO your agent is. The voice
     # session runs there, so it's the same assistant as your terminal
     # sessions — same name, same personality, same memory.
     "agent_dir": "~",
@@ -47,13 +47,13 @@ DEFAULTS = {
     # can silently land on an older model. The fast tier is most of the
     # speed difference people ask about; a deep-work model makes every
     # reply noticeably slower and burns usage doing it.
-    "model": "claude-sonnet-5",
+    "model": "gpt-5.6-sol",
     # The deep-work model for the voice console's "switch to the deep
     # model" command ("back to the fast model" returns to "model"
     # above). Full id ON PURPOSE, same reasoning as "model". The switch
     # lasts one session and is always spoken; this default never moves
     # by itself.
-    "deep_model": "claude-opus-5",
+    "deep_model": "gpt-6-astra",
     # Tool permissions for the voice session. "ask" is the default ON
     # PURPOSE (safety is opt-out, never opt-in): when the agent wants a
     # gated tool (write a file, run a real command), it ASKS OUT LOUD
@@ -115,7 +115,7 @@ DEFAULTS = {
     # A resume that fails falls back to a fresh session and says so in
     # the log. (Grew out of the same community proposal, issue #1.)
     "resume_last_session": False,
-    # Publish your Claude usage (the five-hour and weekly windows) on the
+    # Publish your Codex usage windows on the
     # signal bus so a face can draw it. OFF by default and deliberately
     # so: this is your own account spend, and the faces this feeds are
     # frequently on a stream or a shared screen. Nothing is collected at
@@ -204,18 +204,18 @@ DEFAULTS = {
     "signoff": "Voice line closing. I'll be here when you need me.",
     # Appended to the spoken-delivery discipline below. The discipline covers
     # the MEDIUM (write for the ear, no markdown, keep it short); your agent's
-    # CLAUDE.md covers the character. Use this for a note that belongs to
+    # AGENTS.md covers the character. Use this for a note that belongs to
     # neither, e.g. a rule that only applies when it is speaking.
     "discipline_append": "",
 }
 
 # The spoken-delivery discipline — the MEDIUM half of what used to be a
 # persona. The CHARACTER half deliberately is not here: it's whatever
-# lives in the agent_dir's CLAUDE.md. One identity, one place.
+# lives in the agent_dir's AGENTS.md. One identity, one place.
 DISCIPLINE = (
     "VOICE SESSION (your reply is spoken aloud through a TTS engine, "
     "not displayed): you are SPEAKING, in your own voice and "
-    "personality — your CLAUDE.md is who you are. The TTS engine "
+    "personality — your AGENTS.md is who you are. The TTS engine "
     "PERFORMS your punctuation, so write like a performance, never "
     "like a memo: contractions always, punchy conversational "
     "sentences, and if a line could open a quarterly report, rewrite "
@@ -287,6 +287,6 @@ def load() -> dict:
 
 CFG = load()
 
-# The character half stays in YOUR agent's CLAUDE.md. This is the medium.
+# The character half stays in YOUR agent's AGENTS.md. This is the medium.
 if CFG.get("discipline_append"):
     DISCIPLINE = DISCIPLINE + " " + str(CFG["discipline_append"]).strip()

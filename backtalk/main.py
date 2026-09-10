@@ -15,10 +15,10 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""backtalk — talk to your Claude Code agent out loud.
+"""backtalk — talk to your Codex agent out loud.
 
 Flow: hold the key and speak -> local transcription -> your agent's warm
-Claude session streams the reply -> sentences go to the mouth the moment
+Codex session streams the reply -> sentences go to the mouth the moment
 they complete (~1-2s to first audio on warm turns). The greeting plays
 over a hidden warmup query so the first real turn is already hot.
 
@@ -62,7 +62,7 @@ import threading
 import time
 
 from backtalk import signals
-from backtalk.brain import WarmBrain
+from backtalk.codex_brain import WarmBrain
 from backtalk.config import CFG
 from backtalk.ears import (Ears, explain_audio_failure, record_held,
                            warm as warm_ears)
@@ -211,8 +211,8 @@ def _full_detail(tool, tool_input, ctx):
 
 
 def make_permission_gate(mouth):
-    from claude_agent_sdk import (PermissionResultAllow,
-                                  PermissionResultDeny)
+    from backtalk.codex_brain import (PermissionResultAllow,
+                                      PermissionResultDeny)
 
     async def gate(tool, tool_input, ctx):
         if _AUTOAPPROVE["on"]:
@@ -656,7 +656,7 @@ async def amain():
     resume_id = None
     if CFG.get("resume_last_session"):
         try:
-            from backtalk.brain import SESSION_FILE
+            from backtalk.codex_brain import SESSION_FILE
             with open(SESSION_FILE) as f:
                 resume_id = f.read().strip() or None
         except OSError:
@@ -681,7 +681,7 @@ async def amain():
     # the brain's prompt-cache toll both hide behind the spoken line.
     loop.run_in_executor(None, warm_ears)
     # THE BRAIN CONNECT, guarded. This is the one startup step that
-    # needs a signed-in Claude Code, internet, and available usage.
+    # needs a signed-in Codex session, internet, and available usage.
     # When it fails or hangs, the mouth still works, so SAY SO instead
     # of dying silently with the face stuck on idle (a real field
     # case: the greeting played, then nothing, and on Windows the
@@ -700,9 +700,9 @@ async def amain():
                 else f"failed: {e!r}"[:220])
         log(f"[backtalk] BRAIN CONNECT {kind}")
         mouth.say("Bad news. The voice and the face are fine, but I "
-                  "couldn't reach my brain, the Claude Code session. "
+                  "couldn't reach my brain, the Codex session. "
                   "Check this window for the error. The usual causes: "
-                  "Claude Code isn't signed in, the internet is down, "
+                  "Codex isn't signed in, the internet is down, "
                   "or the plan is out of usage.")
         mouth.wait_done(timeout=30)
         raise SystemExit(1)

@@ -1,5 +1,5 @@
 #!/bin/bash
-# backtalk: talk to your Claude Code agent out loud.
+# backtalk: talk to your Codex agent out loud.
 # Copyright (C) 2026 Jared Rhodenizer
 #
 # This program is free software: you can redistribute it and/or modify
@@ -90,7 +90,7 @@ echo "== backtalk installed =="
 echo ""
 echo "Next:"
 echo "  1. Point it at your agent: edit backtalk.json (agent_dir + name),"
-echo "     or open this folder in Claude Code and say:"
+echo "     or open this folder in Codex and say:"
 echo "         read backtalk.md and set me up"
 echo "  2. ./run.sh — hold the key, talk, let go."
 echo ""

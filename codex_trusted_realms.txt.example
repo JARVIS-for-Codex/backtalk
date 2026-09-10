@@ -1,0 +1,6 @@
+# One absolute folder or drive path per line. Blank lines and comments are ignored.
+# Copy this file to codex_trusted_realms.txt and edit that copy yourself.
+# JARVIS may read and validate your file but must never modify it.
+# The JARVIS agent folder itself is always protected and cannot be listed here.
+
+# C:\path\to\a\trusted\working-folder

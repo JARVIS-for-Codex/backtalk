@@ -161,6 +161,10 @@ def warm():
     with _pipe_lock:
         if _pipe is None:
             _ensure_espeak()
+            if sys.platform == "win32":
+                os.environ.setdefault("UV_SYSTEM_CERTS", "true")
+                import truststore
+                truststore.inject_into_ssl()
             # Before kokoro makes this run's scratch dirs, clear the ones
             # earlier runs could not clean up on their way out.
             _sweep_orphan_espeak_tempdirs()
