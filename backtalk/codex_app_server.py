@@ -3,11 +3,29 @@
 import asyncio
 import contextlib
 import json
+import os
+import shutil
 from collections.abc import AsyncIterator, Awaitable, Callable
+from pathlib import Path
 
 
 class CodexAppServerError(RuntimeError):
     pass
+
+
+def _codex_executable():
+    """Find Codex even when a Windows Desktop launcher has a bare PATH."""
+    found = shutil.which("codex")
+    if found:
+        return found
+    if os.name == "nt":
+        local = os.environ.get("LOCALAPPDATA")
+        if local:
+            root = Path(local) / "OpenAI" / "Codex" / "bin"
+            candidates = list(root.glob("*/codex.exe"))
+            if candidates:
+                return str(max(candidates, key=lambda p: p.stat().st_mtime))
+    return "codex"
 
 
 class CodexAppServer:
@@ -28,7 +46,7 @@ class CodexAppServer:
     async def start(self):
         if self._process is not None:
             return
-        command = ["codex", "app-server"]
+        command = [_codex_executable(), "app-server"]
         for override in self._config_overrides:
             command.extend(("--config", override))
         self._process = await asyncio.create_subprocess_exec(
