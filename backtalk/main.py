@@ -133,6 +133,12 @@ def _norm_speech(text):
     return " ".join("".join(out).split())
 
 
+def _is_quit_speech(text):
+    """Match quit phrases after normalizing Whisper's punctuation."""
+    norm = _norm_speech(text)
+    return any(_norm_speech(q) in norm for q in QUIT_PHRASES)
+
+
 def _deny_pending(reason=_INTERRUPT_ANSWER):
     """Resolve a pending spoken ask as a deny. Called whenever the turn
     that posed it is being interrupted, so the ask can never outlive its
@@ -892,11 +898,10 @@ async def amain():
                     "confirm", "confirmed", "yes confirm",
                     "yes confirmed"):
                 verb = pend + ":confirmed"
-            elif not expired and not any(q in text.lower()
-                                         for q in QUIT_PHRASES):
+            elif not expired and not _is_quit_speech(text):
                 mouth.say("Staying as we are.")
                 return True
-        if any(q in text.lower() for q in QUIT_PHRASES):
+        if _is_quit_speech(text):
             if speak_task and not speak_task.done():
                 speak_task.cancel()
             mouth.shut_up()
