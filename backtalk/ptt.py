@@ -84,6 +84,7 @@ class PTTListener:
     def __init__(self, key="home"):
         self._key = resolve_key(key) if isinstance(key, str) else key
         self._held = False
+        self._closed = False
         self._release_t = None          # a release awaiting confirmation
         self._press_evt = threading.Event()
         self._listener = keyboard.Listener(on_press=self._on_press,
@@ -121,10 +122,18 @@ class PTTListener:
         # settle-then-wait would then block forever: the next press is
         # filtered as key-repeat, so nothing ever sets the event again.
         while True:
+            if self._closed:
+                return
             self._settle()
             if self._press_evt.wait(timeout=self.RELEASE_GRACE):
                 self._press_evt.clear()
                 return
+
+    def close(self):
+        """Stop the hook and wake a thread blocked in wait_press()."""
+        self._closed = True
+        self._press_evt.set()
+        self._listener.stop()
 
     def is_held(self) -> bool:
         self._settle()

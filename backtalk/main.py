@@ -1058,6 +1058,12 @@ async def amain():
         pass
     finally:
         _MIC["gen"] += 1     # abort any live open-mic capture promptly
+        # Wake both indefinite executor waits before asyncio closes its
+        # default executor. Without this, goodbye logs "hung up" but the
+        # Python process and its command window remain alive forever.
+        typed_q.put(None)
+        if "ptt" in locals():
+            ptt.close()
         if speak_task and not speak_task.done():
             speak_task.cancel()
         mouth.shutdown()  # restores the music on Ctrl-C / crash paths too
