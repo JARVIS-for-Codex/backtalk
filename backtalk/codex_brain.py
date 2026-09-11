@@ -191,10 +191,13 @@ class WarmBrain:
         await self._server.close()
 
     async def ask_stream(self, utterance):
+        now = datetime.now().astimezone()
+        local_clock = (f"{now:%A, %B} {now.day}, {now:%Y at %H:%M:%S %Z}")
         params = {
             "threadId": self._thread_id,
             "input": [{"type": "text", "text":
-                       f"{DISCIPLINE}\n\nThe person says: {utterance}"}],
+                       f"{DISCIPLINE}\n\nCurrent local date and time: "
+                       f"{local_clock}.\n\nThe person says: {utterance}"}],
             "cwd": os.path.abspath(CFG["agent_dir"]),
             "model": self.model,
             "approvalPolicy": ("never" if self._permission_mode ==
