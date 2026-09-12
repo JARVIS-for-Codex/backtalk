@@ -13,6 +13,9 @@ class CodexAppServerError(RuntimeError):
     pass
 
 
+_STREAM_LIMIT = 40 * 1024 * 1024
+
+
 def _codex_executable():
     """Find Codex even when a Windows Desktop launcher has a bare PATH."""
     found = shutil.which("codex")
@@ -51,15 +54,20 @@ class CodexAppServer:
             command.extend(("--config", override))
         self._process = await asyncio.create_subprocess_exec(
             *command, stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            limit=_STREAM_LIMIT)
         self._reader_task = asyncio.create_task(self._read_stdout())
         self._stderr_task = asyncio.create_task(self._read_stderr())
-        await asyncio.wait_for(self.request("initialize", {
-            "clientInfo": {"name": "backtalk", "title": "Backtalk",
-                           "version": "1.0.0"},
-            "capabilities": {"experimentalApi": True},
-        }), 15)
-        await self.notify("initialized", {})
+        try:
+            await asyncio.wait_for(self.request("initialize", {
+                "clientInfo": {"name": "backtalk", "title": "Backtalk",
+                               "version": "1.0.0"},
+                "capabilities": {"experimentalApi": True},
+            }), 15)
+            await self.notify("initialized", {})
+        except BaseException:
+            await self.close()
+            raise
 
     async def close(self):
         process = self._process
@@ -107,31 +115,41 @@ class CodexAppServer:
 
     async def _read_stdout(self):
         assert self._process and self._process.stdout
-        while line := await self._process.stdout.readline():
-            try:
-                message = json.loads(line)
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                continue
-            request_id = message.get("id")
-            if request_id in self._pending and "method" not in message:
-                future = self._pending.pop(request_id)
-                if "error" in message:
-                    error = message["error"]
-                    future.set_exception(CodexAppServerError(
-                        str(error.get("message", error))))
-                else:
-                    future.set_result(message.get("result", {}))
-            elif request_id is not None and "method" in message:
-                await self._answer_server_request(message)
-            elif "method" in message:
-                params = message.get("params", {})
-                item = params.get("item", {})
-                item_id = item.get("id")
-                if message["method"] == "item/started" and item_id:
-                    self._items[item_id] = item
-                elif message["method"] == "item/completed" and item_id:
-                    self._items.pop(item_id, None)
-                await self._events.put(message)
+        try:
+            while line := await self._process.stdout.readline():
+                try:
+                    message = json.loads(line)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    continue
+                request_id = message.get("id")
+                if request_id in self._pending and "method" not in message:
+                    future = self._pending.pop(request_id)
+                    if "error" in message:
+                        error = message["error"]
+                        future.set_exception(CodexAppServerError(
+                            str(error.get("message", error))))
+                    else:
+                        future.set_result(message.get("result", {}))
+                elif request_id is not None and "method" in message:
+                    await self._answer_server_request(message)
+                elif "method" in message:
+                    params = message.get("params", {})
+                    item = params.get("item", {})
+                    item_id = item.get("id")
+                    if message["method"] == "item/started" and item_id:
+                        self._items[item_id] = item
+                    elif message["method"] == "item/completed" and item_id:
+                        self._items.pop(item_id, None)
+                    await self._events.put(message)
+            error = CodexAppServerError("Codex App Server closed its output")
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            error = CodexAppServerError(f"Codex App Server reader failed: {exc}")
+        for future in self._pending.values():
+            if not future.done():
+                future.set_exception(error)
+        self._pending.clear()
 
     async def _answer_server_request(self, message):
         decision = "decline"
